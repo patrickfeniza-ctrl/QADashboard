@@ -68,16 +68,14 @@ export default function App() {
   const { data, lastUpdated, lastError } = payload
   const labels = useMemo(() => Object.keys(data), [data])
   const values = useMemo(() => labels.map(l => parseNumeric(data[l])), [labels, data])
-  const countTotal = useMemo(() => {
-    const fromSheet = parseNumeric(data['Total Test Cases'] || '')
-    if (fromSheet > 0) return fromSheet
-    return labels
-      .filter(l => isCountMetric(l, data[l]))
-      .reduce((sum, l) => sum + parseNumeric(data[l]), 0)
-  }, [labels, data])
+
+  const statusLabels = ['Passed', 'Failed', 'Blocked', 'Not Started', 'Not Applicable']
+  const statusTotal = useMemo(() => {
+    return statusLabels.reduce((sum, l) => sum + parseNumeric(data[l] || ''), 0)
+  }, [data])
 
   const chartLabels = useMemo(
-    () => labels.filter(l => ['Passed', 'Failed', 'Blocked', 'Not Started', 'Not Applicable'].includes(l)),
+    () => labels.filter(l => statusLabels.includes(l)),
     [labels]
   )
   const chartValues = useMemo(() => chartLabels.map(l => parseNumeric(data[l])), [chartLabels, data])
@@ -135,8 +133,10 @@ export default function App() {
               <div key={label} className="card" style={{ borderTopColor: colorForLabel(label, i) }}>
                 <span className="card-label">{label}</span>
                 <span className="card-value">{data[label]}</span>
-                {isCountMetric(label, data[label]) && countTotal > 0 && (
-                  <span className="card-pct">{((values[i] / countTotal) * 100).toFixed(1)}% of total</span>
+                {isCountMetric(label, data[label]) && (
+                  statusLabels.includes(label) && statusTotal > 0
+                    ? <span className="card-pct">{((values[i] / statusTotal) * 100).toFixed(1)}% of total</span>
+                    : null
                 )}
               </div>
             ))}
