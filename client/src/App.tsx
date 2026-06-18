@@ -52,6 +52,17 @@ function isCountMetric(label: string, value: string): boolean {
   return !isPercentMetric(value) && label !== 'Total Test Cases'
 }
 
+function isRateLabel(label: string): boolean {
+  const rateLabels = ['Pass Rate', 'Fail Rate', 'Pass %', 'Fail %', 'Passed %', 'Failed %']
+  return rateLabels.includes(label)
+}
+
+function getBaseCountKey(label: string): string | null {
+  if (label.toLowerCase().includes('pass')) return 'Passed'
+  if (label.toLowerCase().includes('fail')) return 'Failed'
+  return null
+}
+
 export default function App() {
   const [payload, setPayload] = useState<SheetPayload>({ data: {}, lastUpdated: null, lastError: null })
 
@@ -129,17 +140,24 @@ export default function App() {
       ) : (
         <>
           <section className="cards">
-            {labels.map((label, i) => (
-              <div key={label} className="card" style={{ borderTopColor: colorForLabel(label, i) }}>
-                <span className="card-label">{label}</span>
-                <span className="card-value">{data[label]}</span>
-                {isCountMetric(label, data[label]) && (
-                  statusLabels.includes(label) && statusTotal > 0
-                    ? <span className="card-pct">{((values[i] / statusTotal) * 100).toFixed(1)}% of total</span>
-                    : null
-                )}
-              </div>
-            ))}
+            {labels.map((label, i) => {
+              const isRate = isRateLabel(label)
+              const baseKey = getBaseCountKey(label)
+              const baseCount = baseKey ? parseNumeric(data[baseKey] || '') : 0
+
+              return (
+                <div key={label} className="card" style={{ borderTopColor: colorForLabel(label, i) }}>
+                  <span className="card-label">{label}</span>
+                  <span className="card-value">{data[label]}</span>
+                  {isRate && baseCount > 0 && statusTotal > 0 && (
+                    <span className="card-pct">{baseCount} of {statusTotal} total</span>
+                  )}
+                  {!isRate && isCountMetric(label, data[label]) && statusLabels.includes(label) && statusTotal > 0 && (
+                    <span className="card-pct">{((values[i] / statusTotal) * 100).toFixed(1)}% of total</span>
+                  )}
+                </div>
+              )
+            })}
           </section>
 
           <section className="charts">
