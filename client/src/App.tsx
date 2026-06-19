@@ -63,6 +63,11 @@ function getBaseCountKey(label: string): string | null {
   return null
 }
 
+function isProgressLabel(label: string): boolean {
+  const progressLabels = ['Execution Progress', 'Progress', 'Completion %', 'Test Progress']
+  return progressLabels.includes(label) || label.toLowerCase().includes('progress')
+}
+
 export default function App() {
   const [payload, setPayload] = useState<SheetPayload>({ data: {}, lastUpdated: null, lastError: null })
 
@@ -140,25 +145,49 @@ export default function App() {
       ) : (
         <>
           <section className="cards">
-            {labels.map((label, i) => {
+            {labels.filter(l => !isProgressLabel(l)).map((label, i) => {
               const isRate = isRateLabel(label)
               const baseKey = getBaseCountKey(label)
               const baseCount = baseKey ? parseNumeric(data[baseKey] || '') : 0
 
               return (
-                <div key={label} className="card" style={{ borderTopColor: colorForLabel(label, i) }}>
+                <div key={label} className="card" style={{ borderTopColor: colorForLabel(label, labels.indexOf(label)) }}>
                   <span className="card-label">{label}</span>
                   <span className="card-value">{data[label]}</span>
                   {isRate && baseCount > 0 && statusTotal > 0 && (
                     <span className="card-pct">{baseCount} of {statusTotal} total</span>
                   )}
                   {!isRate && isCountMetric(label, data[label]) && statusLabels.includes(label) && statusTotal > 0 && (
-                    <span className="card-pct">{((values[i] / statusTotal) * 100).toFixed(1)}% of total</span>
+                    <span className="card-pct">{((values[labels.indexOf(label)] / statusTotal) * 100).toFixed(1)}% of total</span>
                   )}
                 </div>
               )
             })}
           </section>
+
+          {labels.some(isProgressLabel) && (
+            <section className="progress-section">
+              {labels.filter(isProgressLabel).map(label => {
+                const value = parseNumeric(data[label])
+                const percent = Math.min(100, Math.max(0, value))
+
+                return (
+                  <div key={label} className="progress-card">
+                    <div className="progress-header">
+                      <span className="progress-label">{label}</span>
+                      <span className="progress-value">{data[label]}</span>
+                    </div>
+                    <div className="progress-bar-bg">
+                      <div
+                        className="progress-bar-fill"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </section>
+          )}
 
           <section className="charts">
             <div className="chart-panel">
