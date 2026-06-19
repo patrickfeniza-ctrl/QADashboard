@@ -10,8 +10,13 @@ import {
   BarElement,
 } from 'chart.js'
 import { Doughnut, Bar } from 'react-chartjs-2'
+import { createClient } from '@supabase/supabase-js'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const supabase = SUPABASE_URL ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null
 
 type DataKV = Record<string, string>
 
@@ -70,6 +75,9 @@ function isProgressLabel(label: string): boolean {
 
 export default function App() {
   const [payload, setPayload] = useState<SheetPayload>({ data: {}, lastUpdated: null, lastError: null })
+  const [dashboardTitle, setDashboardTitle] = useState('QA Dashboard')
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [titleInput, setTitleInput] = useState('')
 
   useEffect(() => {
     const onData = (p: SheetPayload) => setPayload(p)
@@ -80,6 +88,34 @@ export default function App() {
       .catch(() => {})
     return () => { socket.off('sheetData', onData) }
   }, [])
+
+  useEffect(() => {
+    if (supabase) {
+      supabase.from('dashboard_settings').select('title').eq('id', 1).single()
+        .then(({ data }) => {
+          if (data?.title) setDashboardTitle(data.title)
+        })
+    }
+  }, [])
+
+  const handleTitleEdit = () => {
+    setTitleInput(dashboardTitle)
+    setIsEditingTitle(true)
+  }
+
+  const handleTitleSave = async () => {
+    const newTitle = titleInput.trim() || 'QA Dashboard'
+    setDashboardTitle(newTitle)
+    setIsEditingTitle(false)
+    if (supabase) {
+      await supabase.from('dashboard_settings').update({ title: newTitle, updated_at: new Date().toISOString() }).eq('id', 1)
+    }
+  }
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleTitleSave()
+    if (e.key === 'Escape') setIsEditingTitle(false)
+  }
 
   const { data, lastUpdated, lastError } = payload
   const labels = useMemo(() => Object.keys(data), [data])
@@ -119,9 +155,22 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
-        <div>
-          <h1>QA Dashboard</h1>
-          <p className="subtitle">Live data from Google Sheets — Column A (label) · Column B (value)</p>
+        <div className="header-title-area">
+          {isEditingTitle ? (
+            <input
+              type="text"
+              className="title-input"
+              value={titleInput}
+              onChange={(e) => setTitleInput(e.target.value)}
+              onKeyDown={handleTitleKeyDown}
+              onBlur={handleTitleSave}
+              autoFocus
+            />
+          ) : (
+            <h1 onClick={handleTitleEdit} className="editable-title" title="Click to edit">
+              {dashboardTitle}
+            </h1>
+          )}
         </div>
         <div className="status">
           {lastError ? (

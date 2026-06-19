@@ -47,10 +47,33 @@ h2 {
   letter-spacing: 0.04em;
 }
 
-.subtitle {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.9rem;
+.header-title-area {
+  flex: 1;
+}
+
+.editable-title {
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-left: -8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.editable-title:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.title-input {
+  font-size: 1.75rem;
+  font-weight: 700;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  padding: 4px 12px;
+  color: var(--text);
+  width: 100%;
+  max-width: 500px;
+  outline: none;
 }
 
 .status {
