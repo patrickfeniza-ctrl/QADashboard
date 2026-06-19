@@ -75,9 +75,9 @@ function isProgressLabel(label: string): boolean {
 
 export default function App() {
   const [payload, setPayload] = useState<SheetPayload>({ data: {}, lastUpdated: null, lastError: null })
-  const [dashboardTitle, setDashboardTitle] = useState('QA Dashboard')
-  const [isEditingTitle, setIsEditingTitle] = useState(false)
-  const [titleInput, setTitleInput] = useState('')
+  const [buildName, setBuildName] = useState('')
+  const [isEditingBuild, setIsEditingBuild] = useState(false)
+  const [buildInput, setBuildInput] = useState('')
 
   useEffect(() => {
     const onData = (p: SheetPayload) => setPayload(p)
@@ -91,30 +91,30 @@ export default function App() {
 
   useEffect(() => {
     if (supabase) {
-      supabase.from('dashboard_settings').select('title').eq('id', 1).single()
+      supabase.from('dashboard_settings').select('build_name').eq('id', 1).single()
         .then(({ data }) => {
-          if (data?.title) setDashboardTitle(data.title)
+          if (data?.build_name) setBuildName(data.build_name)
         })
     }
   }, [])
 
-  const handleTitleEdit = () => {
-    setTitleInput(dashboardTitle)
-    setIsEditingTitle(true)
+  const handleBuildEdit = () => {
+    setBuildInput(buildName)
+    setIsEditingBuild(true)
   }
 
-  const handleTitleSave = async () => {
-    const newTitle = titleInput.trim() || 'QA Dashboard'
-    setDashboardTitle(newTitle)
-    setIsEditingTitle(false)
+  const handleBuildSave = async () => {
+    const newBuildName = buildInput.trim()
+    setBuildName(newBuildName)
+    setIsEditingBuild(false)
     if (supabase) {
-      await supabase.from('dashboard_settings').update({ title: newTitle, updated_at: new Date().toISOString() }).eq('id', 1)
+      await supabase.from('dashboard_settings').update({ build_name: newBuildName, updated_at: new Date().toISOString() }).eq('id', 1)
     }
   }
 
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleTitleSave()
-    if (e.key === 'Escape') setIsEditingTitle(false)
+  const handleBuildKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleBuildSave()
+    if (e.key === 'Escape') setIsEditingBuild(false)
   }
 
   const { data, lastUpdated, lastError } = payload
@@ -156,20 +156,22 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div className="header-title-area">
-          {isEditingTitle ? (
+          <h1>QA Dashboard</h1>
+          {isEditingBuild ? (
             <input
               type="text"
-              className="title-input"
-              value={titleInput}
-              onChange={(e) => setTitleInput(e.target.value)}
-              onKeyDown={handleTitleKeyDown}
-              onBlur={handleTitleSave}
+              className="build-input"
+              value={buildInput}
+              onChange={(e) => setBuildInput(e.target.value)}
+              onKeyDown={handleBuildKeyDown}
+              onBlur={handleBuildSave}
+              placeholder="Enter build name..."
               autoFocus
             />
           ) : (
-            <h1 onClick={handleTitleEdit} className="editable-title" title="Click to edit">
-              {dashboardTitle}
-            </h1>
+            <p className="build-name editable-build" onClick={handleBuildEdit} title="Click to edit build name">
+              {buildName || 'Click to set build name'}
+            </p>
           )}
         </div>
         <div className="status">
